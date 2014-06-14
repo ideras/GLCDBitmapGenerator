@@ -43,27 +43,26 @@ public class GLCDPreviewComponent extends JComponent {
         byte[] imgData = imgItm.getData1BPP();
         int pos = x + y * width;
         int index = pos / 8;
-        int mask = 1 << (7 - pos % 8);
+        byte screenMask = (byte)(1 << (pos % 8));
         int imageX = 0, imageY = 0;
         
-        System.out.println("Threshold: " + imgItm.getThreshold());
         for (int i = 0; i < imgData.length; i++) {
             byte b = imgData[i];
 
-            for (int bitPos = 7; bitPos >= 0; bitPos--) {
+            for (byte bitMask = 1; bitMask != 0; bitMask <<= 1) {
 
-                if ((b & (1 << bitPos)) != 0) {
-                    screenContent[index] |= mask;
+                if ((b & bitMask) != 0) {
+                    screenContent[index] |= screenMask;
                     System.out.print("1");
                 } else {
-                    screenContent[index] &= ~mask;
+                    screenContent[index] &= ~screenMask;
                     System.out.print("0");
                 }
-                mask >>= 1;
+                screenMask <<= 1;
                 imageX++;
 
-                if (mask == 0) {
-                    mask = 0x80;
+                if (screenMask == 0) {
+                    screenMask = 0x01;
                     index++;
                 }
 
@@ -72,7 +71,7 @@ public class GLCDPreviewComponent extends JComponent {
                     imageX = 0;
                     pos = x + y * width;
                     index = pos / 8;
-                    mask = 1 << (7 - pos % 8);
+                    screenMask = (byte)(1 << (pos % 8));
 
                     System.out.println();
                     if (imageY >= imgItm.getHeight()) {
@@ -97,8 +96,8 @@ public class GLCDPreviewComponent extends JComponent {
         for (int i = 0; i < screenContent.length; i++) {
             byte b = screenContent[i];
 
-            for (int bitPos = 7; bitPos >= 0; bitPos--) {
-                paintPixel(g2d, column, row, (b & (1 << bitPos)) != 0);
+            for (byte bitMask = 1; bitMask != 0; bitMask <<= 1) {
+                paintPixel(g2d, column, row, (b & bitMask) != 0);
                 column += PIXEL_SIZE;
                 x++;
 

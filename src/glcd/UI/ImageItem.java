@@ -13,7 +13,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.IndexColorModel;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
 import javax.imageio.ImageIO;
 
 /**
@@ -140,7 +139,8 @@ public class ImageItem {
         int size = (width * height + 7) / 8;
         byte data[] = new byte[size];
         byte value = 0;
-        int index = 0, bitPos = 7;
+        int index = 0;
+        byte bitMask = 0x01;
 
         int thresholdIntensity = threshold * 255 / 100;
 
@@ -157,19 +157,19 @@ public class ImageItem {
 
                 boolean setPixel;
                 if (!invertedPixels) {
-                    setPixel = grayIntensity > thresholdIntensity;
-                } else {
                     setPixel = grayIntensity < thresholdIntensity;
+                } else {
+                    setPixel = grayIntensity > thresholdIntensity;
                 }
 
                 if (setPixel) {
-                    value |= (1 << bitPos);   // set the bit if this pixel is more dark than light
+                    value |= bitMask;   // set the bit if this pixel is more dark than light
                 }
 
-                bitPos--;
-                if (bitPos < 0) {
+                bitMask <<= 1;
+                if (bitMask == 0) {
                     data[index++] = value;
-                    bitPos = 7;
+                    bitMask = 0x01;
                     value = 0;
 
                 }
@@ -184,50 +184,59 @@ public class ImageItem {
     }
 
     // Return the byte representing data a the given page and x offset
-    private int getPageValue(int x, int page) {
+    private int buildPageValue(int x, int page, byte[] imageData) {
         int val = 0;
-
+        
         for (byte bit = 0; bit < 8; bit++) {
             int y = page * 8 + bit;
             int pos = y * width + x;
+            int index = pos / 8;
+            byte mask = (byte)(1 << (pos % 8));
+            
             if (pos < width * height) // skip padding if at the end of real data
             {
-                int c = image.getRGB(x, y);
-                int r = (c >> 16) & 0xFF;      // get the rgb values 
-                int g = (c >> 8) & 0xFF;
-                int b = c & 0xFF;
-                if (r < threshold || g < threshold || b < threshold) // test if all values are closer to dark than light
-                {
-                    val |= (1 << bit);   // set the bit if this pixel is more dark than light
+                byte b = imageData[index];
+                
+                if ((b & mask) != 0) {
+                    val |= (1 << bit);
                 }
             }
         }
         return val;
     }
+    
+    private String byteToHex(byte b) {
+        final char hexDigit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+        byte digit1 = (byte)((b >> 4) & 0x0F);
+        byte digit2 = (byte)(b & 0x0F);
+        
+        String str = hexDigit[digit1] + "" + hexDigit[digit2];
+        
+        return str;
+    }
 
-    private String generateCCodeForKS0108() {
+    private String generateCCodeForGeneric1BPPPaged() {
         StringBuilder sb = new StringBuilder();
-        int pageCount, pixels, bytes;
+        int pageCount;
 
         pageCount = (height + 7) / 8; // round up so each page contains 8 pixels    
-        bytes = width * pageCount;
-        pixels = width * height;
 
         sb.append("const unsigned char ");
         sb.append(glcd.Util.getBaseName(imageName));
         sb.append("[] = {\n");
 
-        // note width and height are bytes so 256 will be 0
         sb.append("  ").append(width).append(", //Width\n");
         sb.append("  ").append(height).append(", //Height");
-
+        
+        byte[] imageData = getData1BPP();
+        
         for (int page = 0; page < pageCount; page++) {
             sb.append("\n  /* page ").append(page).append(" (lines ").append(page * 8).append("-").append(page * 8 + 7).append(") */\n");
             sb.append("  ");
             for (int x = 0; x < width; x++) {
-                int pixelsPerPage = getPageValue(x, page);
-                sb.append("0x").append(Integer.toHexString(pixelsPerPage));
-                if ((x == (width - 1)) && (page == (((height + 7) / 8) - 1))) {
+                int pixelsPerPage = buildPageValue(x, page, imageData);
+                sb.append("0x").append(byteToHex((byte)pixelsPerPage));
+                if ((x == (width - 1)) && (page == pageCount - 1)) {
                     sb.append("\n"); // this is the last element so new line instead of comma
                 } else {
                     sb.append(",");   // comma on all but last entry
@@ -237,7 +246,7 @@ public class ImageItem {
                 }
             }
         }
-        sb.append("\n};\n");
+        sb.append("};\n");
 
         return sb.toString();
     }
@@ -315,7 +324,7 @@ public class ImageItem {
          DWORD biClrImportant;
          }
          */
-        sb.append("0x28, 0x00, 0x00, 0x00, 0x").append(Integer.toHexString(width & 0xFF)).append(", 0x00, 0x00, 0x00, 0x").append(Integer.toHexString(height & 0xFF)).append(", 0x00, 0x00, 0x00, ");
+        sb.append("0x28, 0x00, 0x00, 0x00, 0x").append(byteToHex((byte)width)).append(", 0x00, 0x00, 0x00, 0x").append(byteToHex((byte)height)).append(", 0x00, 0x00, 0x00, ");
         //biPlanes, biBitCount, biCompression
         sb.append("0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,\n");
         //biSizeImage, biXPelsPerMeter, biYPelsPerMeter, biClrUsed
@@ -333,9 +342,9 @@ public class ImageItem {
         cm.getBlues(b);
 
         for (int i = 0; i < 16; i++) {
-            sb.append("0x").append(Integer.toHexString(b[i] & 0xFF)).append(", ");
-            sb.append("0x").append(Integer.toHexString(g[i] & 0xFF)).append(", ");
-            sb.append("0x").append(Integer.toHexString(r[i] & 0xFF)).append(", ");
+            sb.append("0x").append(byteToHex(b[i])).append(", ");
+            sb.append("0x").append(byteToHex(g[i])).append(", ");
+            sb.append("0x").append(byteToHex(r[i])).append(", ");
             sb.append("0x00,\n");
         }
 
@@ -356,7 +365,7 @@ public class ImageItem {
                     case 0x01:
                         color |= pixelIndex & 0x0F;
                         state = 2;
-                        sb.append("0x").append(Integer.toHexString(color)).append(", ");
+                        sb.append("0x").append(byteToHex((byte)color)).append(", ");
                         count++;
                         color = 0;
 
@@ -370,7 +379,7 @@ public class ImageItem {
 
             //Output an extra byte
             if (state == 0x01) {
-                sb.append("0x").append(Integer.toHexString(color)).append(", ");
+                sb.append("0x").append(byteToHex((byte)color)).append(", ");
                 count++;
 
                 if (count == 16) {
@@ -395,7 +404,7 @@ public class ImageItem {
         return sb.toString();
     }
 
-    private String generateCCodeForGeneric1BPP() {
+    private String generateCCodeForGeneric1BPPLinear() {
         StringBuilder sb = new StringBuilder();
 
         sb.append("/* ").append(imageName).append(": */\n");
@@ -406,15 +415,16 @@ public class ImageItem {
         sb.append(Util.replaceInvalidCharacters(Util.getBaseName(imageName)));
         sb.append("[] = {\n");
 
-        sb.append("0x").append(Integer.toHexString(width & 0xFF)).append(", //Width\n");
-        sb.append("0x").append(Integer.toHexString(height & 0xFF)).append(", //Height\n");
+        //Width and Height are bytes
+        sb.append("0x").append(byteToHex((byte)width)).append(", //Width\n");
+        sb.append("0x").append(byteToHex((byte)height)).append(", //Height\n");
         
         byte[] imageData = getData1BPP();
         int count = 0;
 
         for (int i = 0; i < imageData.length; i++) {
             byte b = imageData[i];
-            sb.append("0x").append(Integer.toHexString(b & 0xFF)).append(", ");
+            sb.append("0x").append(byteToHex(b)).append(", ");
             
             count ++;
             if (count == 16) {
@@ -430,11 +440,11 @@ public class ImageItem {
     public String generateCCode() {
         switch (outputFormat) {
             case RawImage.GENERIC_1BPP_PAGED:
-                return generateCCodeForKS0108();
+                return generateCCodeForGeneric1BPPPaged();
             case RawImage.WINDOWS_BMP_4BPP:
                 return generateCCodeForWindowsBitmap4BPP();
             case RawImage.GENERIC_1BPP_LINEAR:
-                return generateCCodeForGeneric1BPP();
+                return generateCCodeForGeneric1BPPLinear();
             default:
                 return "/* Unsupported format */\n";
         }

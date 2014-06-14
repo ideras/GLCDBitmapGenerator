@@ -4,7 +4,7 @@ import glcd.GLCDImageLoader.GLCDImageLoaderException;
 import glcd.GLCDImageLoader.Lexer;
 import glcd.GLCDImageLoader.Parser;
 import glcd.GLCDImageLoader.RawImage;
-import glcd.GLCDImageLoader.RawImageData;
+import glcd.GLCDImageLoader.RawImageInfo;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -73,20 +73,45 @@ public class Util {
         BufferedInputStream in = new BufferedInputStream(is);
         Lexer lexer = new Lexer(in);
         Parser parser = new Parser(lexer);
-        RawImageData rawImageData = null;
+        RawImageInfo imageInfo;
 
         do {
-            rawImageData = parser.getImageData();
+            imageInfo = parser.getImageInfo();
 
-            if (rawImageData != null) {
-                if (format == RawImage.GENERIC_1BPP_PAGED) {
-                    format = (rawImageData.getSize() == -1) ? RawImage.GENERIC_1BPP_PAGED_T1 : RawImage.GENERIC_1BPP_PAGED_T2;
+            if (imageInfo != null) {
+                int startIndex = 0;
+                int width = -1, height = -1;
+                
+                ArrayList<Integer> rawData = imageInfo.getData();
+
+                switch (format) {
+                    case RawImage.GENERIC_1BPP_PAGED:
+                        if (imageInfo.getSize() == -1) {
+                            width = rawData.get(0).intValue();
+                            height = rawData.get(1).intValue();
+                            startIndex = 2;
+                        } else {
+                            int pageCount = rawData.size() / 128;
+                            width = 128;
+                            height = pageCount * 8;
+                        }
+                        break;
+
+                    case RawImage.GENERIC_1BPP_LINEAR:
+                        width = rawData.get(0).intValue();
+                        height = rawData.get(1).intValue();
+                        startIndex = 2;
+                        break;
+                    default:
                 }
 
-                RawImage rawImage = new RawImage(rawImageData.getRawData(), format, rawImageData.getName());
+                int[] rd = imageInfo.getDataAsArray(startIndex);
+
+                RawImage rawImage = new RawImage(rd, format, width, height, imageInfo.getName());
                 listRawImages.add(rawImage);
             }
-        } while (rawImageData != null);
+
+        } while (imageInfo != null);
 
         return listRawImages;
     }

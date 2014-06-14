@@ -3,7 +3,6 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package glcd.GLCDImageLoader;
 
 import java.util.ArrayList;
@@ -12,30 +11,41 @@ import java.util.ArrayList;
  *
  * @author ideras
  */
-public class RawImageData {
-    private ArrayList<Integer> rawData;
+public class RawImageInfo {
+
+    private ArrayList<Integer> data;
     private int size;
     private String name;
 
-    public RawImageData() {
-        this.rawData = new ArrayList<Integer>();
+    public RawImageInfo() {
+        this.data = new ArrayList<Integer>();
         this.size = 0;
         this.name = "";
     }
 
-    
-    public RawImageData(ArrayList<Integer> rawData, int size, String name) {
-        this.rawData = rawData;
+    public RawImageInfo(ArrayList<Integer> data, int size, String name) {
+        this.data = data;
         this.size = size;
         this.name = name;
     }
 
-    public ArrayList<Integer> getRawData() {
-        return rawData;
+    public int[] getDataAsArray(int startIndex) {
+        int arraySize = data.size() - startIndex;
+        int[] rd = new int[arraySize];
+
+        for (int i = startIndex; i < data.size(); i++) {
+            rd[i-startIndex] = data.get(i).intValue();
+        }
+
+        return rd;
     }
 
-    public void setRawData(ArrayList<Integer> rawData) {
-        this.rawData = rawData;
+    public ArrayList<Integer> getData() {
+        return data;
+    }
+
+    public void setData(ArrayList<Integer> rawData) {
+        this.data = rawData;
     }
 
     public int getSize() {

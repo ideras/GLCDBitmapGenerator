@@ -7,7 +7,6 @@ package glcd.GLCDImageLoader;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.IndexColorModel;
-import java.util.ArrayList;
 
 /**
  *
@@ -15,13 +14,16 @@ import java.util.ArrayList;
  */
 public class RawImage {
 
-    private ArrayList<Integer> rawData;
+    private int[] rawData;
     private int format;
+    private int width, height;
     String name;
 
-    public RawImage(ArrayList<Integer> rawData, int format, String name) {
+    public RawImage(int[] rawData, int format, int width, int height, String name) {
         this.rawData = rawData;
         this.format = format;
+        this.width = width;
+        this.height = height;
         this.name = name;
     }
 
@@ -33,11 +35,11 @@ public class RawImage {
         this.format = format;
     }
 
-    public ArrayList<Integer> getRawData() {
+    public int[] getRawData() {
         return rawData;
     }
 
-    public void setRawData(ArrayList<Integer> rawData) {
+    public void setRawData(int[] rawData) {
         this.rawData = rawData;
     }
 
@@ -49,10 +51,10 @@ public class RawImage {
         this.name = name;
     }
 
-    //KS0108 use 8 bits pages
+    //Paged Format uses 8 bits per pages
     private void drawPage(BufferedImage img, int pageData, int row, int col) {
-        for (int i = 0; i < 8; i++) {
-            if ((pageData & (1 << i)) != 0) {
+        for (byte mask = 1; mask != 0; mask <<= 1) {
+            if ((pageData & mask) != 0) {
                 img.setRGB(col, row, 0x00);
             } else {
                 img.setRGB(col, row, 0xFFFFFF);
@@ -61,14 +63,15 @@ public class RawImage {
         }
     }
 
-    private BufferedImage buildImageFromKS0108Format(int width, int height, int pageCount, int index) throws GLCDImageLoaderException {
+    private BufferedImage buildImageFrom1BPPPaged() throws GLCDImageLoaderException {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
-        int row = 0;
+        int row = 0, index = 0;
+        int pageCount = height/8;
 
         try {
             for (int page = 0; page < pageCount; page++) {
                 for (int col = 0; col < width; col++) {
-                    drawPage(image, rawData.get(index).intValue(), row, col);
+                    drawPage(image, rawData[index], row, col);
                     index++;
                 }
                 row += 8;
@@ -88,9 +91,9 @@ public class RawImage {
         int i, j;
         int imageX, imageY;
 
-        int biHeaderSize = rawData.get(14);
-        int width = rawData.get(18);
-        int height = rawData.get(22);
+        int biHeaderSize = rawData[14];
+        width = rawData[18];
+        height = rawData[22];
 
         // check for clipping
         if ((height <= 0) || // bitmap is unexpectedly encoded in top-to-bottom pixel order
@@ -107,11 +110,11 @@ public class RawImage {
         i = 14 + biHeaderSize;
         j = 0;
         while (j < 16) {
-            b[j] = rawData.get(i).byteValue();
+            b[j] = (byte)rawData[i];
             i++;
-            g[j] = rawData.get(i).byteValue();
+            g[j] = (byte)rawData[i];
             i++;
-            r[j] = rawData.get(i).byteValue();
+            r[j] = (byte)rawData[i];
             i += 2;
             j++;
         }
@@ -124,11 +127,11 @@ public class RawImage {
         imageY = height - 1;
         imageX = 0;
 
-        j = rawData.get(10);                  // byte 10 contains the offset where image data can be found
+        j = rawData[10];                  // byte 10 contains the offset where image data can be found
         for (i = 1; i <= (width * height / 2); i++) {
             // the left pixel is in the upper 4 bits
-            int leftPixel = (rawData.get(j) >> 4) & 0xF;
-            int rightPixel = rawData.get(j) & 0xF;
+            int leftPixel = (rawData[j] >> 4) & 0xF;
+            int rightPixel = rawData[j] & 0xF;
 
             int color = getRGB(r[leftPixel], g[leftPixel], b[leftPixel]);
             image.setRGB(imageX, imageY, color);
@@ -163,16 +166,13 @@ public class RawImage {
         return image;
     }
 
-    private BufferedImage buildImageFromGenericBitmap1BPP() throws GLCDImageLoaderException {
+    private BufferedImage buildImageFrom1BPPLinear() throws GLCDImageLoaderException {
         try {
-            int width = rawData.get(0).intValue();
-            int height = rawData.get(1).intValue();
-
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
             
             int x = 0, y = 0;
-            for (int i = 2; i < rawData.size(); i++) {
-                int value = rawData.get(i).intValue() & 0xFF;
+            for (int i = 0; i < rawData.length; i++) {
+                int value = rawData[i] & 0xFF;
                 int mask = 0x80;
                 
                 while (mask != 0) {
@@ -198,35 +198,19 @@ public class RawImage {
     }
 
     public BufferedImage toImage() throws GLCDImageLoaderException {
-        int width, height, pageCount;
-
         switch (format) {
-            case GENERIC_1BPP_PAGED_T1:
-                width = rawData.get(0).intValue();
-                height = rawData.get(1).intValue();
-                pageCount = height / 8;
-
-                return buildImageFromKS0108Format(width, height, pageCount, 2);
-
-            case GENERIC_1BPP_PAGED_T2:
-                pageCount = rawData.size() / 128;
-                width = 128;
-                height = pageCount * 8;
-
-                return buildImageFromKS0108Format(width, height, pageCount, 0);
-
+            case GENERIC_1BPP_PAGED:
+                return buildImageFrom1BPPPaged();
             case WINDOWS_BMP_4BPP:
                 return buildImageFromWindowsBitmap4BPP();
             case GENERIC_1BPP_LINEAR:
-                return buildImageFromGenericBitmap1BPP();
+                return buildImageFrom1BPPLinear();
             default:
                 return null;
         }
     }
 
     public static final int GENERIC_1BPP_PAGED = 1; //1 bit per pixel, paged format
-    public static final int GENERIC_1BPP_PAGED_T1 = 2; //1 bit per pixel, width and height set in the array
-    public static final int GENERIC_1BPP_PAGED_T2 = 3; //1 bit per pixel, width and height need to be computed
-    public static final int WINDOWS_BMP_4BPP = 4; //LM3S1968 or LM3S8962's 4-bit grayscale OLED display
-    public static final int GENERIC_1BPP_LINEAR = 5; //Bitmap 1 bit per pixel, linear format
+    public static final int WINDOWS_BMP_4BPP = 2; //Windows Bitmap 4 bit per pixel
+    public static final int GENERIC_1BPP_LINEAR = 3; //1 bit per pixel, linear format
 }

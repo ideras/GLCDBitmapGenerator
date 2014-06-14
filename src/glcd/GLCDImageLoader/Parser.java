@@ -26,7 +26,7 @@ public class Parser
         token = lexer.nextToken();
     }
 
-    public RawImageData getImageData() throws GLCDImageLoaderException, IOException
+    public RawImageInfo getImageInfo() throws GLCDImageLoaderException, IOException
     {
         ArrayList<Integer> pixelArray = new ArrayList<Integer>();
         int arraySize = -1;
@@ -101,6 +101,6 @@ public class Parser
             match(Token.SEMICOLON, "';'");
         
 
-        return new RawImageData(pixelArray, arraySize, name);
+        return new RawImageInfo(pixelArray, arraySize, name);
     }
 }
