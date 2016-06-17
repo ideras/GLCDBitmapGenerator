@@ -69,7 +69,7 @@ public class MainForm extends javax.swing.JFrame {
     private void importImagesFromCSourceFile(File file, int format) throws IOException, GLCDImageLoaderException {
         List<RawImage> listRawImage = glcd.Util.importImageFromCSource(file, format);
         DefaultListModel<ImageItem> listModel = (DefaultListModel<ImageItem>) lstImages.getModel();
-        
+
         for (RawImage rawImage : listRawImage) {
             try {
                 BufferedImage image = rawImage.toImage();
@@ -135,7 +135,9 @@ public class MainForm extends javax.swing.JFrame {
                 }
             }
         });
-        jButton1 = new javax.swing.JButton();
+        btnImageExport = new javax.swing.JButton();
+        btnImageClose = new javax.swing.JButton();
+        btnImageOpen = new javax.swing.JButton();
         jPanel2 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
         txtOutputFileName = new javax.swing.JTextField();
@@ -171,6 +173,7 @@ public class MainForm extends javax.swing.JFrame {
         menuItemImport1BPP_Paged = new javax.swing.JMenuItem();
         menuItemImportWinBMP4BPP = new javax.swing.JMenuItem();
         menuItemImport1BPP_Linear = new javax.swing.JMenuItem();
+        menuItemImportGeneric4BPP = new javax.swing.JMenuItem();
         menuGenerateCCode = new javax.swing.JMenuItem();
         jSeparator2 = new javax.swing.JPopupMenu.Separator();
         menuItemExit = new javax.swing.JMenuItem();
@@ -181,16 +184,34 @@ public class MainForm extends javax.swing.JFrame {
 
         jSplitPane2.setDividerLocation(280);
 
+        jLabel1.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
         jLabel1.setText("Images");
 
         lstImages.setModel(new javax.swing.DefaultListModel<ImageItem>()
         );
         jScrollPane1.setViewportView(lstImages);
 
-        jButton1.setText("Close Images");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        btnImageExport.setIcon(new javax.swing.ImageIcon(getClass().getResource("/glcd/Icons/source_c.png"))); // NOI18N
+        btnImageExport.setToolTipText("Export selected images to C code");
+        btnImageExport.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                btnImageExportActionPerformed(evt);
+            }
+        });
+
+        btnImageClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/glcd/Icons/fileclose.png"))); // NOI18N
+        btnImageClose.setToolTipText("Close selected images");
+        btnImageClose.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnImageCloseActionPerformed(evt);
+            }
+        });
+
+        btnImageOpen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/glcd/Icons/fileopen.png"))); // NOI18N
+        btnImageOpen.setToolTipText("Open image files ...");
+        btnImageOpen.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnImageOpenActionPerformed(evt);
             }
         });
 
@@ -203,20 +224,30 @@ public class MainForm extends javax.swing.JFrame {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 255, Short.MAX_VALUE)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton1)))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGap(13, 13, 13)
+                                .addComponent(btnImageOpen)
+                                .addGap(18, 18, 18)
+                                .addComponent(btnImageExport)
+                                .addGap(18, 18, 18)
+                                .addComponent(btnImageClose))
+                            .addComponent(jLabel1))
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1)
-                    .addComponent(jButton1))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(btnImageExport)
+                    .addComponent(btnImageClose)
+                    .addComponent(btnImageOpen))
+                .addGap(18, 18, Short.MAX_VALUE)
+                .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 611, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 570, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
@@ -372,12 +403,14 @@ public class MainForm extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(rbResolution2)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtCustomWidth, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(rbResolution3)
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(txtCustomWidth, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addComponent(jLabel7)
-                                .addComponent(txtCustomHeight, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                .addComponent(txtCustomHeight, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addComponent(rbResolution3)
+                                .addGap(0, 0, Short.MAX_VALUE)))))
                 .addGap(20, 20, 20))
         );
 
@@ -532,6 +565,14 @@ public class MainForm extends javax.swing.JFrame {
         });
         jMenu3.add(menuItemImport1BPP_Linear);
 
+        menuItemImportGeneric4BPP.setText("Generic Bitmp 4BPP");
+        menuItemImportGeneric4BPP.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                menuItemImportGeneric4BPPActionPerformed(evt);
+            }
+        });
+        jMenu3.add(menuItemImportGeneric4BPP);
+
         jMenu1.add(jMenu3);
 
         menuGenerateCCode.setText("Export images to C code");
@@ -624,7 +665,7 @@ public class MainForm extends javax.swing.JFrame {
 
         for (File file : selectedFiles) {
             try {
-                
+
                 importImagesFromCSourceFile(file, RawImage.GENERIC_1BPP_PAGED);
 
             } catch (IOException ex) {
@@ -649,7 +690,7 @@ public class MainForm extends javax.swing.JFrame {
         DefaultListModel<ImageItem> listModel = (DefaultListModel<ImageItem>) lstImages.getModel();
 
         for (File file : selectedFiles) {
-            
+
             try {
                 importImagesFromCSourceFile(file, RawImage.WINDOWS_BMP_4BPP);
             } catch (IOException ex) {
@@ -770,7 +811,11 @@ public class MainForm extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_menuItemImport1BPP_LinearActionPerformed
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    private void btnImageExportActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImageExportActionPerformed
+        menuGenerateCCodeActionPerformed(evt);
+    }//GEN-LAST:event_btnImageExportActionPerformed
+
+    private void btnImageCloseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImageCloseActionPerformed
         DefaultListModel<ImageItem> lm = (DefaultListModel<ImageItem>) lstImages.getModel();
 
         List<ImageItem> imageItems = lstImages.getSelectedValuesList();
@@ -778,7 +823,32 @@ public class MainForm extends javax.swing.JFrame {
         for (ImageItem imageItem : imageItems) {
             lm.removeElement(imageItem);
         }
-    }//GEN-LAST:event_jButton1ActionPerformed
+    }//GEN-LAST:event_btnImageCloseActionPerformed
+
+    private void btnImageOpenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImageOpenActionPerformed
+        menuItemOpenActionPerformed(evt);
+    }//GEN-LAST:event_btnImageOpenActionPerformed
+
+    private void menuItemImportGeneric4BPPActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_menuItemImportGeneric4BPPActionPerformed
+        File[] selectedFiles = openImageFiles(cSourceFilter, "Import Generic Bitmap 1BPP from C source code ...");
+
+        if (selectedFiles == null) {
+            return;
+        }
+
+        for (File file : selectedFiles) {
+            try {
+                importImagesFromCSourceFile(file, RawImage.GENERIC_BMP_4BPP);
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error with: \"" + file.getName() + "\"\n" + ex.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+            } catch (GLCDImageLoaderException ex) {
+                JOptionPane.showMessageDialog(this, "Error with: \"" + file.getName() + "\"\n" + ex.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+            } catch (IndexOutOfBoundsException ex) {
+                JOptionPane.showMessageDialog(this, "Error with: \"" + file.getName() + "\"\n" + ex.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }//GEN-LAST:event_menuItemImportGeneric4BPPActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -786,13 +856,15 @@ public class MainForm extends javax.swing.JFrame {
     private javax.swing.JPanel blockMaxColor;
     private javax.swing.JPanel blockMinColor;
     private javax.swing.JButton btnBrowseOutputFile;
+    private javax.swing.JButton btnImageClose;
+    private javax.swing.JButton btnImageExport;
+    private javax.swing.JButton btnImageOpen;
     private javax.swing.JButton btnShowPreview;
     private javax.swing.JButton btnZoom1_1;
     private javax.swing.JButton btnZoomMinus;
     private javax.swing.JButton btnZoomPlus;
     private javax.swing.ButtonGroup buttonGroupResolution;
     private javax.swing.JCheckBox chkInvertImagePixels;
-    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -816,6 +888,7 @@ public class MainForm extends javax.swing.JFrame {
     private javax.swing.JMenuItem menuItemExit;
     private javax.swing.JMenuItem menuItemImport1BPP_Linear;
     private javax.swing.JMenuItem menuItemImport1BPP_Paged;
+    private javax.swing.JMenuItem menuItemImportGeneric4BPP;
     private javax.swing.JMenuItem menuItemImportWinBMP4BPP;
     private javax.swing.JMenuItem menuItemOpen;
     private javax.swing.JRadioButton rbResolution1;

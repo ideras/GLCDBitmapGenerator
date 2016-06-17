@@ -90,6 +90,9 @@ public class ExportImagesForm extends javax.swing.JDialog {
             case 2:
                 outputFormat = RawImage.GENERIC_1BPP_LINEAR;
                 break;
+            case 3:
+                outputFormat = RawImage.GENERIC_BMP_4BPP;
+                break;
             default:
                 outputFormat = RawImage.GENERIC_1BPP_PAGED;
         }
@@ -285,7 +288,7 @@ public class ExportImagesForm extends javax.swing.JDialog {
         jLabel5.setText("Image format: ");
 
         comboBoxImageFormat.setFont(new java.awt.Font("Dialog", 0, 12)); // NOI18N
-        comboBoxImageFormat.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Generic Bitmap 1 BPP Paged", "Windows Bitmap 4 BPP", "Generic Bitmap 1 BPP Linear" }));
+        comboBoxImageFormat.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Generic Bitmap 1 BPP Paged", "Windows Bitmap 4 BPP", "Generic Bitmap 1 BPP Linear", "Generic Bitmap 4 BPP" }));
         comboBoxImageFormat.setSelectedIndex(2);
 
         btnExportImages.setText("Export images");

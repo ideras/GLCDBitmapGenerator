@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package glcd.GLCDImageLoader;
 
 import java.awt.image.BufferedImage;
@@ -196,6 +191,64 @@ public class RawImage {
             throw new GLCDImageLoaderException("Error converting image '" + name + "'. Invalid image format");
         }
     }
+    
+    private BufferedImage buildImageFromGenericBitmap4BPP() {
+        int i, j;
+        int x, y;
+
+        if (rawData[1] != 4)
+            return null;
+        
+        //Big Endian
+        height = (rawData[3] << 8) | rawData[2];
+        width = (rawData[5] << 8) | rawData[4];
+
+        //Palette
+        byte[] b = new byte[16];
+        byte[] g = new byte[16];
+        byte[] r = new byte[16];
+
+        //Read palette: 16 entries
+        i = 6;
+        j = 0;
+        while (j < 16) {
+            int color = (rawData[i+1] << 8) | rawData[i];
+            i += 2;
+            
+            //Decode 5:6:5 color
+            byte red = (byte)(color >> 11);
+            byte green = (byte)((color & 0x07E0) >> 5);
+            byte blue = (byte)(color & 0x001F);
+            
+            r[j] = (byte)((red << 3) + 7);
+            g[j] = (byte)((green << 2) + 3);
+            b[j] = (byte)((blue << 3) + 7);
+            j++;
+        }
+
+        IndexColorModel palette = new IndexColorModel(4, 16, r, g, b);
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_INDEXED, palette);
+
+        j = i;
+        int data = 0, color, pixel;
+        
+        for (y = 0; y < height; y++) {
+            for (x = 0; x < width; x++) {
+                if ((x % 2) == 0) {
+                    data = rawData[i++];
+                    pixel = data & 0xF;
+                } else {
+                    pixel = (data & 0xF0) >> 4;
+                }
+            
+                color = getRGB(r[pixel], g[pixel], b[pixel]);
+                image.setRGB(x, y, color);
+            }
+        }
+
+        return image;
+    }
 
     public BufferedImage toImage() throws GLCDImageLoaderException {
         switch (format) {
@@ -205,6 +258,8 @@ public class RawImage {
                 return buildImageFromWindowsBitmap4BPP();
             case GENERIC_1BPP_LINEAR:
                 return buildImageFrom1BPPLinear();
+            case GENERIC_BMP_4BPP:
+                return buildImageFromGenericBitmap4BPP();
             default:
                 return null;
         }
@@ -213,4 +268,5 @@ public class RawImage {
     public static final int GENERIC_1BPP_PAGED = 1; //1 bit per pixel, paged format
     public static final int WINDOWS_BMP_4BPP = 2; //Windows Bitmap 4 bit per pixel
     public static final int GENERIC_1BPP_LINEAR = 3; //1 bit per pixel, linear format
+    public static final int GENERIC_BMP_4BPP = 4; //Generic Bitmap 4 bit per pixel
 }
